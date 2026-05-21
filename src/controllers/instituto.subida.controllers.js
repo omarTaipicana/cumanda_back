@@ -200,7 +200,14 @@ await sendEmail({
       <!-- Header -->
       <div style="
         text-align: center;
-         background:  #05500e ;
+        background:
+      radial-gradient(
+        ellipse at center,
+        #ffffff 0%,
+        #eef6de 30%,
+        #bddd63 62%,
+        #7cab1f 100%
+      );
         padding: 50px 20px;
       ">
         
@@ -219,7 +226,7 @@ await sendEmail({
       <!-- Body -->
       <div style="padding: 35px; text-align: center;">
         
-        <h1 style="color: #05500e ; margin-bottom: 10px;">
+        <h1 style="color: #568416 ; margin-bottom: 10px;">
           ¡Felicitaciones ${user.firstName} ${user.lastName}!
         </h1>
 
@@ -240,7 +247,7 @@ await sendEmail({
           <a href="${absoluteUrl}" target="_blank"
             style="
               background-color: #A4C639;
-              color: #05500e ;
+              color: #568416 ;
               padding: 14px 30px;
               text-decoration: none;
               border-radius: 6px;

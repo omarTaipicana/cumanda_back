@@ -361,7 +361,7 @@ const create = catchError(async (req, res) => {
       <!-- Header -->
       <div style="
         text-align: center;
-        background: linear-gradient(135deg, #05500e , #2f3f8f);
+        background: linear-gradient(135deg, #568416 , #2f3f8f);
         padding: 40px 20px;
       ">
         
@@ -387,7 +387,7 @@ const create = catchError(async (req, res) => {
       <!-- Body -->
       <div style="padding: 35px; text-align: center;">
         
-        <h1 style="color: #05500e ; margin-bottom: 10px;">
+        <h1 style="color: #568416 ; margin-bottom: 10px;">
           Hola ${firstName} ${lastName},
         </h1>
 
@@ -399,7 +399,14 @@ const create = catchError(async (req, res) => {
         <div style="
           width: 60px;
           height: 4px;
-          background: #A4C639;
+         background:
+      radial-gradient(
+        ellipse at center,
+        #ffffff 0%,
+        #eef6de 30%,
+        #bddd63 62%,
+        #7cab1f 100%
+      );
           margin: 15px auto 25px;
           border-radius: 2px;
         "></div>
@@ -417,7 +424,7 @@ const create = catchError(async (req, res) => {
           <a href="${link}" target="_blank"
             style="
               background: linear-gradient(135deg, #A4C639, #8fb82f);
-              color: #05500e ;
+              color: #568416 ;
               padding: 14px 32px;
               text-decoration: none;
               border-radius: 8px;
@@ -482,7 +489,7 @@ await sendEmail({
         <!-- Header -->
         <div style="
           text-align: center;
-          background: linear-gradient(135deg, #05500e , #2f3f8f);
+          background: linear-gradient(135deg, #568416 , #2f3f8f);
           padding: 40px 20px;
         ">
           
@@ -508,7 +515,7 @@ await sendEmail({
         <!-- Body -->
         <div style="padding: 30px; text-align: center;">
           
-          <h1 style="color: #05500e ;">
+          <h1 style="color: #568416 ;">
             Hola ${firstName} ${lastName},
           </h1>
 
@@ -520,7 +527,14 @@ await sendEmail({
           <div style="
             width: 60px;
             height: 4px;
-            background: #A4C639;
+           background:
+      radial-gradient(
+        ellipse at center,
+        #ffffff 0%,
+        #eef6de 30%,
+        #bddd63 62%,
+        #7cab1f 100%
+      );
             margin: 15px auto 25px;
             border-radius: 2px;
           "></div>
@@ -536,7 +550,7 @@ await sendEmail({
               margin-top: 20px;
               padding: 14px 30px;
               background: linear-gradient(135deg, #A4C639, #8fb82f);
-              color: #05500e ;
+              color: #568416 ;
               font-size: 16px;
               font-weight: 700;
               border-radius: 8px;
@@ -1067,7 +1081,7 @@ await sendEmail({
       <!-- Header -->
       <div style="
         text-align: center;
-        background: linear-gradient(135deg, #05500e , #2f3f8f);
+        background: linear-gradient(135deg, #568416 , #2f3f8f);
         padding: 40px 20px;
       ">
         
@@ -1093,7 +1107,7 @@ await sendEmail({
       <!-- Body -->
       <div style="padding: 30px; text-align: center;">
         
-        <h1 style="color: #05500e ;">
+        <h1 style="color: #568416 ;">
           Hola, ${user.firstName} ${user.lastName}
         </h1>
 
@@ -1105,7 +1119,14 @@ await sendEmail({
         <div style="
           width: 60px;
           height: 4px;
-          background: #A4C639;
+         background:
+      radial-gradient(
+        ellipse at center,
+        #ffffff 0%,
+        #eef6de 30%,
+        #bddd63 62%,
+        #7cab1f 100%
+      );
           margin: 15px auto 25px;
           border-radius: 2px;
         "></div>
@@ -1121,7 +1142,7 @@ await sendEmail({
             margin-top: 20px;
             padding: 14px 30px;
             background: linear-gradient(135deg, #A4C639, #8fb82f);
-            color: #05500e ;
+            color: #568416 ;
             font-size: 16px;
             font-weight: 700;
             border-radius: 8px;

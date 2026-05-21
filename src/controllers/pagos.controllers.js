@@ -369,7 +369,14 @@ await sendEmail({
       <!-- Header -->
       <div style="
         text-align: center;
-         background:  #05500e ;
+        background:
+      radial-gradient(
+        ellipse at center,
+        #ffffff 0%,
+        #eef6de 30%,
+        #bddd63 62%,
+        #7cab1f 100%
+      );
         padding: 50px 20px;
       ">
         
@@ -388,7 +395,7 @@ await sendEmail({
       <!-- Body -->
       <div style="padding: 35px; text-align: center;">
         
-        <h1 style="color: #05500e ; margin-bottom: 10px;">
+        <h1 style="color: #568416 ; margin-bottom: 10px;">
           ¡Hola ${user.firstName} ${user.lastName}!
         </h1>
 
@@ -399,7 +406,14 @@ await sendEmail({
         <div style="
           width: 60px;
           height: 4px;
-          background: #A4C639;
+           background:
+      radial-gradient(
+        ellipse at center,
+        #ffffff 0%,
+        #eef6de 30%,
+        #bddd63 62%,
+        #7cab1f 100%
+      );
           margin: 15px auto 25px;
           border-radius: 2px;
         "></div>
@@ -443,7 +457,7 @@ await sendEmail({
           <a href="${url}" target="_blank"
             style="
               background: linear-gradient(135deg, #A4C639, #8fb82f);
-              color: #05500e ;
+              color: #568416 ;
               padding: 14px 32px;
               text-decoration: none;
               border-radius: 8px;
@@ -458,7 +472,7 @@ await sendEmail({
 
         <!-- Atención -->
         <div style="margin-top: 40px; text-align: center;">
-          <p style="font-size: 20px; font-weight: 700; color: #05500e ; margin-bottom: 10px;">
+          <p style="font-size: 20px; font-weight: 700; color: #568416 ; margin-bottom: 10px;">
             📞 Atención Personalizada
           </p>
           <p style="font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
