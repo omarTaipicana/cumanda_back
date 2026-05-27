@@ -28,7 +28,14 @@ const getAll = catchError(async (req, res) => {
     busqueda,
     fechaInicio,
     fechaFin,
-    certificado, // nuevo query
+    certificado,
+    contificoDocumentoId,
+    contificoDocumentoNumero,
+    contificoEstado,
+    contificoFirmado,
+    contificoUrlRide,
+    contificoUrlXml,
+    contificoAutorizacion,
   } = req.query;
 
   // filtros de Pagos
@@ -54,13 +61,13 @@ const getAll = catchError(async (req, res) => {
   // filtros de User
   const userWhere = busqueda
     ? {
-        [Op.or]: [
-          { grado: { [Op.iLike]: `%${busqueda}%` } },
-          { firstName: { [Op.iLike]: `%${busqueda}%` } },
-          { lastName: { [Op.iLike]: `%${busqueda}%` } },
-          { cI: { [Op.iLike]: `%${busqueda}%` } },
-        ],
-      }
+      [Op.or]: [
+        { grado: { [Op.iLike]: `%${busqueda}%` } },
+        { firstName: { [Op.iLike]: `%${busqueda}%` } },
+        { lastName: { [Op.iLike]: `%${busqueda}%` } },
+        { cI: { [Op.iLike]: `%${busqueda}%` } },
+      ],
+    }
     : undefined;
 
   // traer pagos con inscripción y usuario
@@ -82,6 +89,14 @@ const getAll = catchError(async (req, res) => {
       "createdAt",
       "inscripcionId",
       "usuarioEdicion",
+      "contificoDocumentoId",
+      "contificoDocumentoNumero",
+      "contificoEstado",
+      "contificoFirmado",
+      "contificoUrlRide",
+      "contificoUrlXml",
+      "contificoAutorizacion",
+
     ],
     include: [
       {
@@ -130,6 +145,7 @@ const getAll = catchError(async (req, res) => {
 
   return res.json(results);
 });
+
 
 
 
@@ -638,14 +654,111 @@ const update = catchError(async (req, res) => {
   if (io) io.emit("pagoActualizado", pagoActualizado);
 
   // 4. Detectar cambio de verificado: false -> true
+  // 4. Detectar cambio de verificado: false -> true
   if (!verificadoAntes && verificadoDespues) {
+    // ✅ 1) Generar certificado
     try {
-      await generarCertificado(pagoActualizado.id);
+      const yaTieneCert = await Certificado.findOne({
+        where: { inscripcionId: pagoActualizado.inscripcionId },
+      });
+
+      if (!yaTieneCert) {
+        await generarCertificado(pagoActualizado.id);
+      } else {
+        console.log("ℹ️ Ya existe certificado para esta inscripción, no se regenera.");
+      }
     } catch (error) {
-      console.error("Error generando certificado:", error);
-      // no rompemos la respuesta al cliente
+      console.error("Error verificando/generando certificado:", error);
     }
+
+
+    // ✅ 2) Facturación Contífico (persona + factura)
+    // ✅ 2) Facturación Contífico (persona + factura)
+    // try {
+    //   if (pagoActualizado.contificoDocumentoId) {
+    //     console.log("ℹ️ Pago ya tiene factura Contífico:", pagoActualizado.contificoDocumentoNumero);
+    //   } else {
+    //     const inscripcion = await Inscripcion.findByPk(pagoActualizado.inscripcionId, {
+    //       include: [{ model: User }, { model: Course }],
+    //     });
+
+    //     if (!inscripcion || !inscripcion.user) {
+    //       console.warn("No se encontró inscripción/usuario para facturación Contífico");
+    //     } else {
+    //       const user = inscripcion.user;
+    //       const course = inscripcion.course;
+
+    //       const {
+    //         contificoBuscarOCrearPersona,
+    //         contificoGetSiguienteDocumento,
+    //         contificoCrearFacturaIva0,
+    //         contificoEnviarDocumentoAlSRI,
+    //       } = await require ("../utils/contifico.service.js");
+
+    //       let personaId = user.contificoPersonaId;
+
+    //       if (!personaId) {
+    //         const persona = await contificoBuscarOCrearPersona({
+    //           cedula: String(user.cI || "").trim(),
+    //           email: String(user.email || "").trim(),
+    //           firstName: user.firstName,
+    //           lastName: user.lastName,
+    //           telefonos: user.cellular || "",
+    //           direccion: `${user.city || ""} ${user.province || ""}`.trim(),
+    //         });
+
+    //         personaId = persona.id;
+    //         await User.update({ contificoPersonaId: personaId }, { where: { id: user.id } });
+    //       }
+
+    //       const total = Number(pagoActualizado.valorDepositado);
+    //       if (!Number.isFinite(total) || total <= 0) {
+    //         console.warn("No se emitió factura: valorDepositado inválido:", pagoActualizado.valorDepositado);
+    //       } else {
+    //         const { documento } = await contificoGetSiguienteDocumento();
+
+    //         let doc = await contificoCrearFacturaIva0({
+    //           documento,
+    //           personaId,
+    //           cedula: String(user.cI || "").trim(),
+    //           email: String(user.email || "").trim(),
+    //           razon_social: `${user.firstName} ${user.lastName}`.trim(),
+    //           direccion: `${user.city || ""} ${user.province || ""}`.trim(),
+    //           telefonos: user.cellular || "",
+    //           total,
+    //           descripcionItem: `Pago curso: ${course?.nombre || pagoActualizado.curso || "Curso"}`,
+    //         });
+
+    //         await Pagos.update(
+    //           {
+    //             contificoDocumentoId: doc.id,
+    //             contificoDocumentoNumero: doc.documento,
+    //             contificoEstado: doc.estado,
+    //             contificoFirmado: doc.firmado,
+    //             contificoAutorizacion: doc.autorizacion,
+    //             contificoUrlRide: doc.url_ride,
+    //             contificoUrlXml: doc.url_xml,
+    //           },
+    //           { where: { id } }
+    //         );
+
+    //         try {
+    //           await contificoEnviarDocumentoAlSRI(doc.id);
+    //           console.log("🚀 Documento enviado al SRI:", doc.documento);
+    //         } catch (sriError) {
+    //           console.error("❌ Error enviando al SRI:", sriError.response?.data || sriError.message);
+    //         }
+    //       }
+    //     }
+    //   }
+    // } catch (err) {
+    //   console.error("❌ Error Contífico (persona/factura):", err.response?.data || err.message);
+    // }
+
+
+
   }
+
 
   return res.json(pagoActualizado);
 });

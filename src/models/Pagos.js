@@ -58,6 +58,42 @@ const Pagos = sequelize.define("pagos", {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  contificoDocumentoId: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  contificoDocumentoNumero: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  contificoEstado: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  contificoAutorizacion: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  contificoUrlRide: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  contificoUrlXml: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  contificoFirmado: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  contificoEmailEnviado: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  contificoEmailEnviadoAt: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
 });
 
 module.exports = Pagos;

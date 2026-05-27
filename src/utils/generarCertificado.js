@@ -3,7 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const { PDFDocument, StandardFonts, rgb } = require("pdf-lib");
-
+const QRCode = require("qrcode");
 const Pagos = require("../models/Pagos");
 const Inscripcion = require("../models/Inscripcion");
 const User = require("../models/User");
@@ -133,11 +133,17 @@ module.exports = async function generarCertificado(pagoId) {
   const nombres = user.firstName || "";
   const apellidos = user.lastName || "";
   const nombreCompleto = `${user.firstName || ""} ${user.lastName || ""}`.trim();
+  const baseUrl = process.env.PUBLIC_API_URL || "http://localhost:8083";
+  const relativeUrl = `/uploads/certificados_firmados/${cursoSigla}/${dataCertificado.cedula}_${cursoSigla}.pdf`;
+  const absoluteUrl = `${baseUrl}${relativeUrl}`;
+  const qrBase64 = await QRCode.toDataURL(absoluteUrl);
+  const qrImage = await pdfDoc.embedPng(qrBase64);
 
 
+  const qrSize = 69;
   const fontSizeNombre = 40;
   const fontSizeApellido = 40;
-  const fontSizeNombreCompleto = 33;
+  const fontSizeNombreCompleto = 26;
   const minFontSize = 24;
   const maxWidth = width - 100;
 
@@ -155,7 +161,7 @@ module.exports = async function generarCertificado(pagoId) {
 
   const yNombre = 250;
   const yApellido = 200;
-  const yNombreCompleto = 260;
+  const yNombreCompleto = 307;
 
 
   const xNombre = (width - nombreWidth) / 2;
@@ -185,6 +191,13 @@ module.exports = async function generarCertificado(pagoId) {
     size: fontSizeNombreCompleto,
     font: fontRegular,
     color: rgb(0, 0, 0),
+  });
+
+    firstPage.drawImage(qrImage, {
+    x: 726,
+    y: 368,
+    width: qrSize,
+    height: qrSize,
   });
 
   // 6) Guardar bytes

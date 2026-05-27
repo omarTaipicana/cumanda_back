@@ -68,6 +68,10 @@ const User = sequelize.define("user", {
     allowNull: true,
     defaultValue: false,
   },
+  contificoPersonaId: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
 });
 
 User.prototype.toJSON = function () {
