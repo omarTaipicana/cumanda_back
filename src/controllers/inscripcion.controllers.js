@@ -260,13 +260,15 @@ const getDashboardObservaciones = catchError(async (req, res) => {
   });
 
 return res.json({
-  totalObservaciones: observaciones.length,
-  observacionesPorDiaOrdenado,
-  observacionesPorFranjaHoraria,
-  observacionesPorUsuario: Object.entries(observacionesPorUsuario).map(
-    ([usuario, cantidad]) => ({ usuario, cantidad })
-  ),
-});
+    totalObservaciones: observaciones.length,
+    observacionesPorDiaOrdenado: Object.entries(observacionesPorDiaOrdenado).map(
+      ([fecha, cantidad]) => ({ fecha, cantidad })
+    ),
+    observacionesPorFranjaHoraria,
+    observacionesPorUsuario: Object.entries(observacionesPorUsuario).map(
+      ([usuario, cantidad]) => ({ usuario, cantidad })
+    ),
+  });
 });
 
 
