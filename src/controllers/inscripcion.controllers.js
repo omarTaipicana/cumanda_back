@@ -10,6 +10,28 @@ const { crearUsuarioMoodle, inscribirUsuarioCurso, registrarUsuarioEnCurso, getM
 const sequelizeM = require("../utils/connectionM");
 const sequelize = require("../utils/connection");
 
+
+const TZ = "America/Guayaquil";
+
+const getFechaEC = (date) => {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(date));
+};
+
+const getHoraEC = (date) => {
+  return Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: TZ,
+      hour: "2-digit",
+      hour12: false,
+    }).format(new Date(date))
+  );
+};
+
 const getAll = catchError(async (req, res) => {
   const results = await Inscripcion.findAll({
     include: [
@@ -90,7 +112,7 @@ const getDashboardInscripciones = catchError(async (req, res) => {
   // Conteo por día
   const inscritosPorDia = {};
   inscripciones.forEach((i) => {
-    const fecha = i.createdAt.toISOString().split("T")[0]; // YYYY-MM-DD
+    const fecha = getFechaEC(i.createdAt); // YYYY-MM-DD
     inscritosPorDia[fecha] = (inscritosPorDia[fecha] || 0) + 1;
   });
 
@@ -110,7 +132,7 @@ const getDashboardInscripciones = catchError(async (req, res) => {
   }));
 
   inscripciones.forEach((i) => {
-    const hour = i.createdAt.getHours(); // hora local
+    const hour = getHoraEC(i.createdAt); // hora local
     const franja = franjas.find((f) => hour >= f.from && hour <= f.to);
     if (franja) {
       const index = inscritosPorFranjaHoraria.findIndex(

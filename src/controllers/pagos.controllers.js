@@ -13,6 +13,17 @@ const generarCertificado = require("../utils/generarCertificado");
 
 const { Op, Sequelize } = require("sequelize");
 
+const TZ = "America/Guayaquil";
+
+const getFechaEcuador = (date) => {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(date));
+};
+
 
 
 
@@ -161,11 +172,9 @@ const getDashboardPagos = catchError(async (req, res) => {
   const where = { confirmacion: true };
   if (desde || hasta) {
     where.createdAt = {};
-    if (desde) where.createdAt[Op.gte] = new Date(desde);
+    if (desde) where.createdAt[Op.gte] = new Date(`${desde}T00:00:00-05:00`);
     if (hasta) {
-      const hastaDate = new Date(hasta);
-      hastaDate.setDate(hastaDate.getDate() + 1);
-      where.createdAt[Op.lt] = hastaDate;
+      where.createdAt[Op.lt] = new Date(`${hasta}T23:59:59.999-05:00`);
     }
   }
 
@@ -228,14 +237,16 @@ const getDashboardPagos = catchError(async (req, res) => {
   ];
 
   // Evolutivo diario
+  // Evolutivo diario con zona horaria Ecuador
   const pagosPorFechaMap = {};
+
   pagos.forEach((p) => {
-    const fecha = new Date(p.createdAt);
-    fecha.setHours(fecha.getHours() - 5); // ajustar a hora local
-    const fechaStr = fecha.toISOString().split("T")[0];
+    const fechaStr = getFechaEcuador(p.createdAt);
+
     pagosPorFechaMap[fechaStr] =
-      (pagosPorFechaMap[fechaStr] || 0) + (p.valorDepositado || 0);
+      (pagosPorFechaMap[fechaStr] || 0) + Number(p.valorDepositado || 0);
   });
+
   const pagosPorFecha = Object.entries(pagosPorFechaMap)
     .map(([fecha, total]) => ({ fecha, total }))
     .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
@@ -374,10 +385,10 @@ const create = catchError(async (req, res) => {
     distintivo === 1 ||
     distintivo === "1";
 
-await sendEmail({
-  to: user.email,
-  subject: "✅ Pago registrado - CUMANDA",
-  html: `
+  await sendEmail({
+    to: user.email,
+    subject: "✅ Pago registrado - CUMANDA",
+    html: `
   <div style="font-family: Arial, sans-serif; background-color: #f4f6f8; padding: 20px; color: #333;">
     
      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 18px rgba(0,0,0,0.08); overflow: hidden;">
@@ -448,16 +459,16 @@ await sendEmail({
         </p>
 
         ${incluyeMoneda || incluyeDistintivo
-          ? `<p style="font-size: 16px; line-height: 1.6; margin-bottom: 18px;">
+        ? `<p style="font-size: 16px; line-height: 1.6; margin-bottom: 18px;">
               <strong>Incluye:</strong> ${[
-                incluyeMoneda ? "🪙 Moneda conmemorativa" : "",
-                incluyeDistintivo ? "🎖️ Distintivo" : "",
-              ]
-                .filter(Boolean)
-                .join(" y ")}
+          incluyeMoneda ? "🪙 Moneda conmemorativa" : "",
+          incluyeDistintivo ? "🎖️ Distintivo" : "",
+        ]
+          .filter(Boolean)
+          .join(" y ")}
             </p>`
-          : ""
-        }
+        : ""
+      }
 
         <p style="font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
           Nuestro equipo realizará la validación de tu pago en el menor tiempo posible. 
@@ -522,7 +533,7 @@ await sendEmail({
     </div>
   </div>
   `,
-});
+  });
 
   const io = req.app.get("io");
   if (io) io.emit("pagoCreado", result);

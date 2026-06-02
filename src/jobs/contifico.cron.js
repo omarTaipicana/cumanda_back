@@ -131,7 +131,10 @@ const startContificoCron = () => {
     } finally {
       running = false;
     }
-  });
+  },
+    {
+      timezone: "America/Guayaquil",
+    });
 
   console.log("⏱️ Cron Contifico activo (cada 2 minutos)");
 };
