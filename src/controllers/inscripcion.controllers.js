@@ -177,11 +177,10 @@ const getDashboardObservaciones = catchError(async (req, res) => {
   // filtro de fechas usando updatedAt
   if (desde || hasta) {
     where.updatedAt = {};
-    if (desde) where.updatedAt[Op.gte] = new Date(desde);
+    if (desde) where.updatedAt[Op.gte] = new Date(`${desde}T00:00:00-05:00`);
+
     if (hasta) {
-      const hastaDate = new Date(hasta);
-      hastaDate.setDate(hastaDate.getDate() + 1);
-      where.updatedAt[Op.lt] = hastaDate;
+      where.updatedAt[Op.lte] = new Date(`${hasta}T23:59:59.999-05:00`);
     }
   }
 
@@ -216,7 +215,7 @@ const getDashboardObservaciones = catchError(async (req, res) => {
 
   // obtenemos las observaciones filtradas desde la DB
   observaciones.forEach((o) => {
-    const fecha = o.updatedAt.toISOString().split("T")[0];
+    const fecha = getFechaEC(o.updatedAt);
     observacionesPorDia[fecha] = (observacionesPorDia[fecha] || 0) + 1;
   });
 
@@ -242,7 +241,7 @@ const getDashboardObservaciones = catchError(async (req, res) => {
   }));
 
   observaciones.forEach((o) => {
-    const hour = o.updatedAt.getHours();
+    const hour = getHoraEC(o.updatedAt);
     const franja = franjas.find((f) => hour >= f.from && hour <= f.to);
     if (franja) {
       const index = observacionesPorFranjaHoraria.findIndex(
@@ -260,16 +259,14 @@ const getDashboardObservaciones = catchError(async (req, res) => {
       (observacionesPorUsuario[userEdit] || 0) + 1;
   });
 
-  return res.json({
-    totalObservaciones: observaciones.length,
-    observacionesPorDiaOrdenado: Object.entries(observacionesPorDiaOrdenado).map(
-      ([fecha, cantidad]) => ({ fecha, cantidad })
-    ),
-    observacionesPorFranjaHoraria,
-    observacionesPorUsuario: Object.entries(observacionesPorUsuario).map(
-      ([usuario, cantidad]) => ({ usuario, cantidad })
-    ),
-  });
+return res.json({
+  totalObservaciones: observaciones.length,
+  observacionesPorDiaOrdenado,
+  observacionesPorFranjaHoraria,
+  observacionesPorUsuario: Object.entries(observacionesPorUsuario).map(
+    ([usuario, cantidad]) => ({ usuario, cantidad })
+  ),
+});
 });
 
 
