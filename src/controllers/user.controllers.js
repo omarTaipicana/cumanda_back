@@ -24,6 +24,7 @@ const getAll = catchError(async (req, res) => {
       pagos,
       certificado,
       curso,
+      observacion,
       page = 1,
       limit = 15,
     } = req.query;
@@ -194,6 +195,7 @@ const getAll = catchError(async (req, res) => {
       pagos,
       certificado,
       curso,
+      observacion,
     ].some((v) => v !== undefined && v !== "");
 
     const result = [];
@@ -273,6 +275,17 @@ const getAll = catchError(async (req, res) => {
             if (nfNum === null || isNaN(nfNum) || nfNum >= 7) return false;
           }
 
+          // --- filtro Observación
+          if (observacion === "true") {
+            const obs = courseItem.observacion;
+            if (!obs || String(obs).trim() === "") return false;
+          }
+
+          if (observacion === "false") {
+            const obs = courseItem.observacion;
+            if (obs && String(obs).trim() !== "") return false;
+          }
+
           // --- otros filtros
           if (matriculado === "true" && !courseItem.matriculado) return false;
           if (matriculado === "false" && courseItem.matriculado) return false;
@@ -350,10 +363,10 @@ const create = catchError(async (req, res) => {
 
     await EmailCode.create({ code, userId: user.id });
 
-   await sendEmail({
-  to: email,
-  subject: "Verificación de correo electrónico - CUMANDA",
-  html: `
+    await sendEmail({
+      to: email,
+      subject: "Verificación de correo electrónico - CUMANDA",
+      html: `
   <div style="font-family: Arial, sans-serif; background-color: #f4f6f8; padding: 20px; color: #333;">
     
     <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 18px rgba(0,0,0,0.08); overflow: hidden;">
@@ -455,7 +468,7 @@ const create = catchError(async (req, res) => {
     
   </div>
   `,
-});
+    });
 
     return res
       .status(200)
@@ -478,10 +491,10 @@ const create = catchError(async (req, res) => {
 
   await EmailCode.create({ code, userId: newUser.id });
 
-await sendEmail({
-  to: email,
-  subject: "Verificación de correo electrónico - CUMANDA",
-  html: `
+  await sendEmail({
+    to: email,
+    subject: "Verificación de correo electrónico - CUMANDA",
+    html: `
     <div style="font-family: Arial, sans-serif; background-color: #f4f6f8; padding: 20px; color: #333;">
       
       <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08); overflow: hidden;">
@@ -574,7 +587,7 @@ await sendEmail({
       </div>
     </div>
   `,
-});
+  });
 
   return res
     .status(201)
@@ -1070,10 +1083,10 @@ const sendEmailResetPassword = catchError(async (req, res) => {
     code: code,
     userId: user.id,
   });
-await sendEmail({
-  to: email,
-  subject: "Restablecer tu contraseña - CUMANDA",
-  html: `
+  await sendEmail({
+    to: email,
+    subject: "Restablecer tu contraseña - CUMANDA",
+    html: `
   <div style="font-family: Arial, sans-serif; background-color: #f4f6f8; padding: 20px; color: #333;">
     
     <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08); overflow: hidden;">
@@ -1165,7 +1178,7 @@ await sendEmail({
     </div>
   </div>
   `,
-});
+  });
 
   return res.json(user);
 });
