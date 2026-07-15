@@ -275,6 +275,14 @@ return res.json({
 
 
 
+
+
+
+
+
+
+
+
 const validateUser = catchError(async (req, res) => {
   const { email, code } = req.body;
 

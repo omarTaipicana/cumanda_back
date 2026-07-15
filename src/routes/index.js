@@ -11,6 +11,7 @@ const userMRouter = require('./userm.router');
 const institutoRouter = require("./instituto.routes");
 const reporteRouter = require("./reporteCertificados.router");
 const contificoRouter = require("./contifico.router");
+const seguimientoRouter = require("./seguimiento.router");
 
 const router = express.Router();
 
@@ -26,5 +27,7 @@ router.use(certificadoRouter);
 router.use(userMRouter);
 router.use(institutoRouter);
 router.use(reporteRouter);
-router.use(contificoRouter)
+router.use(contificoRouter);
+router.use(seguimientoRouter)
+
 module.exports = router;

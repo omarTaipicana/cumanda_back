@@ -10,6 +10,7 @@ const Course = require("../models/Course");
 const Inscripcion = require("../models/Inscripcion");
 const Pagos = require("../models/Pagos");
 const Certificado = require("../models/Certificado");
+const Seguimiento = require("../models/Seguimiento");
 
 // ========================== GET ALL USERS ==========================
 
@@ -24,7 +25,7 @@ const getAll = catchError(async (req, res) => {
       pagos,
       certificado,
       curso,
-      observacion,
+      seguimiento,
       page = 1,
       limit = 15,
     } = req.query;
@@ -152,13 +153,25 @@ const getAll = catchError(async (req, res) => {
     });
 
     // --- 6. Inscripciones + pagos + certificados
-    const [inscripcionesData, pagosData, certificadosData] = await Promise.all([
+    const [
+      inscripcionesData,
+      pagosData,
+      certificadosData,
+      seguimientosData,
+    ] = await Promise.all([
       Inscripcion.findAll({ raw: true }),
+
       Pagos.findAll({
         raw: true,
-        where: { confirmacion: true }, // 👈 solo pagos confirmados
+        where: { confirmacion: true },
       }),
+
       Certificado.findAll({ raw: true }),
+
+      Seguimiento.findAll({
+        raw: true,
+        order: [["createdAt", "DESC"]],
+      }),
     ]);
 
     const inscMap = {};
@@ -185,6 +198,21 @@ const getAll = catchError(async (req, res) => {
       certMap[inscId] = c;
     });
 
+    const seguimientosMap = {};
+
+    seguimientosData.forEach((s) => {
+      const inscId =
+        s.inscripcionId != null ? String(s.inscripcionId) : null;
+
+      if (!inscId) return;
+
+      if (!seguimientosMap[inscId]) {
+        seguimientosMap[inscId] = [];
+      }
+
+      seguimientosMap[inscId].push(s);
+    });
+
 
 
     // --- 7. Filtros
@@ -195,7 +223,7 @@ const getAll = catchError(async (req, res) => {
       pagos,
       certificado,
       curso,
-      observacion,
+      seguimiento,
     ].some((v) => v !== undefined && v !== "");
 
     const result = [];
@@ -240,6 +268,14 @@ const getAll = catchError(async (req, res) => {
             ? { grupo: cert.grupo, fecha: cert.createdAt, url: cert.url }
             : null;
 
+          const seguimientosList =
+            seguimientosMap[String(insc.id)] || [];
+
+          const ultimoSeguimiento =
+            seguimientosList.length > 0
+              ? seguimientosList[0]
+              : null;
+
 
 
           return {
@@ -258,6 +294,10 @@ const getAll = catchError(async (req, res) => {
             userId: insc.userId,
             pagos: pagosList,
             certificado: certData,
+            seguimientos: seguimientosList,
+            totalSeguimientos: seguimientosList.length,
+            ultimoSeguimiento,
+            tieneSeguimiento: seguimientosList.length > 0,
           };
         })
         .filter((courseItem) => {
@@ -276,14 +316,19 @@ const getAll = catchError(async (req, res) => {
           }
 
           // --- filtro Observación
-          if (observacion === "true") {
-            const obs = courseItem.observacion;
-            if (!obs || String(obs).trim() === "") return false;
+          // --- filtro Seguimiento
+          if (
+            seguimiento === "true" &&
+            !courseItem.tieneSeguimiento
+          ) {
+            return false;
           }
 
-          if (observacion === "false") {
-            const obs = courseItem.observacion;
-            if (obs && String(obs).trim() !== "") return false;
+          if (
+            seguimiento === "false" &&
+            courseItem.tieneSeguimiento
+          ) {
+            return false;
           }
 
           // --- otros filtros

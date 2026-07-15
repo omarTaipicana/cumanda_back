@@ -4,6 +4,7 @@ const Inscripcion = require("./Inscripcion");
 const Course = require("./Course");
 const Pagos = require("./Pagos");
 const Certificado = require('../models/Certificado');
+const Seguimiento = require("./Seguimiento");
 
 
 EmailCode.belongsTo(User);
@@ -24,3 +25,14 @@ User.hasOne(Inscripcion);
 
 Certificado.belongsTo(Inscripcion);
 Inscripcion.hasOne(Certificado);
+
+Inscripcion.hasMany(Seguimiento, {
+  foreignKey: "inscripcionId",
+  as: "seguimientos",
+  onDelete: "CASCADE",
+});
+
+Seguimiento.belongsTo(Inscripcion, {
+  foreignKey: "inscripcionId",
+  as: "inscripcion",
+});
