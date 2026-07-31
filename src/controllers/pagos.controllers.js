@@ -9,9 +9,8 @@ const Course = require("../models/Course");
 const User = require("../models/User");
 const Certificado = require("../models/Certificado");
 const generarCertificado = require("../utils/generarCertificado");
-
-
 const { Op, Sequelize } = require("sequelize");
+
 
 const TZ = "America/Guayaquil";
 
@@ -25,6 +24,43 @@ const getFechaEcuador = (date) => {
 };
 
 
+const normalizarBooleano = (valor) => {
+  if (valor === undefined || valor === null || valor === "") {
+    return undefined;
+  }
+
+  if (valor === true || valor === "true" || valor === "1") {
+    return true;
+  }
+
+  if (valor === false || valor === "false" || valor === "0") {
+    return false;
+  }
+
+  return undefined;
+};
+
+const obtenerPaginacion = (pageQuery, limitQuery) => {
+  const pageParsed = Number.parseInt(pageQuery, 10);
+  const limitParsed = Number.parseInt(limitQuery, 10);
+
+  const page =
+    Number.isInteger(pageParsed) && pageParsed > 0
+      ? pageParsed
+      : 1;
+
+  const limit =
+    Number.isInteger(limitParsed) && limitParsed > 0
+      ? Math.min(limitParsed, 100)
+      : 15;
+
+  return {
+    page,
+    limit,
+    offset: (page - 1) * limit,
+  };
+};
+
 
 
 
@@ -36,54 +72,288 @@ const getAll = catchError(async (req, res) => {
     moneda,
     distintivo,
     entregado,
+    confirmacion,
     busqueda,
     fechaInicio,
     fechaFin,
     certificado,
+
     contificoDocumentoId,
     contificoDocumentoNumero,
     contificoEstado,
     contificoFirmado,
-    contificoUrlRide,
-    contificoUrlXml,
     contificoAutorizacion,
+
+    reconocimiento,
+
+    page: pageQuery,
+    limit: limitQuery,
+    order = "DESC",
   } = req.query;
 
-  // filtros de Pagos
+  const {
+    page,
+    limit,
+    offset,
+  } = obtenerPaginacion(pageQuery, limitQuery);
+
+  /*
+   * =====================================================
+   * FILTROS PAGOS
+   * =====================================================
+   */
+
   const pagosWhere = {};
-  if (curso) pagosWhere.curso = curso;
-  if (verificado) pagosWhere.verificado = verificado === "true";
-  if (moneda) pagosWhere.moneda = moneda === "true";
-  if (distintivo) pagosWhere.distintivo = distintivo === "true";
-  if (entregado) pagosWhere.entregado = entregado === "true";
+
+  if (curso?.trim()) {
+    pagosWhere.curso = curso.trim();
+  }
+
+  const verificadoBoolean =
+    normalizarBooleano(verificado);
+
+  const monedaBoolean =
+    normalizarBooleano(moneda);
+
+  const distintivoBoolean =
+    normalizarBooleano(distintivo);
+
+  const entregadoBoolean =
+    normalizarBooleano(entregado);
+
+  const confirmacionBoolean =
+    normalizarBooleano(confirmacion);
+
+  const contificoFirmadoBoolean =
+    normalizarBooleano(contificoFirmado);
+
+  if (verificadoBoolean !== undefined) {
+    pagosWhere.verificado =
+      verificadoBoolean;
+  }
+
+  if (monedaBoolean !== undefined) {
+    pagosWhere.moneda =
+      monedaBoolean;
+  }
+
+  if (distintivoBoolean !== undefined) {
+    pagosWhere.distintivo =
+      distintivoBoolean;
+  }
+
+  if (entregadoBoolean !== undefined) {
+    pagosWhere.entregado =
+      entregadoBoolean;
+  }
+
+  if (confirmacionBoolean !== undefined) {
+    pagosWhere.confirmacion =
+      confirmacionBoolean;
+  }
+
+  if (contificoFirmadoBoolean !== undefined) {
+    pagosWhere.contificoFirmado =
+      contificoFirmadoBoolean;
+  }
+
+  /*
+   * Solo pagos que tengan
+   * moneda o distintivo
+   */
+
+  if (reconocimiento === "true") {
+    pagosWhere[Op.or] = [
+      { moneda: true },
+      { distintivo: true },
+    ];
+  }
+
+  if (contificoDocumentoId?.trim()) {
+    pagosWhere.contificoDocumentoId = {
+      [Op.iLike]:
+        `%${contificoDocumentoId.trim()}%`,
+    };
+  }
+
+  if (contificoDocumentoNumero?.trim()) {
+    pagosWhere.contificoDocumentoNumero = {
+      [Op.iLike]:
+        `%${contificoDocumentoNumero.trim()}%`,
+    };
+  }
+
+  if (contificoEstado?.trim()) {
+    pagosWhere.contificoEstado = {
+      [Op.iLike]:
+        `%${contificoEstado.trim()}%`,
+    };
+  }
+
+  if (contificoAutorizacion?.trim()) {
+    pagosWhere.contificoAutorizacion = {
+      [Op.iLike]:
+        `%${contificoAutorizacion.trim()}%`,
+    };
+  }
+
+  /*
+   * =====================================================
+   * FECHAS
+   * =====================================================
+   */
 
   if (fechaInicio || fechaFin) {
     pagosWhere.createdAt = {};
+
     if (fechaInicio) {
-      pagosWhere.createdAt[Op.gte] = new Date(fechaInicio);
+      pagosWhere.createdAt[Op.gte] =
+        new Date(
+          `${fechaInicio}T00:00:00.000-05:00`
+        );
     }
+
     if (fechaFin) {
-      const fin = new Date(fechaFin);
-      fin.setDate(fin.getDate() + 2); // sumamos 1 día
-      pagosWhere.createdAt[Op.lt] = fin; // usamos menor estricto
+      const fin =
+        new Date(
+          `${fechaFin}T00:00:00.000-05:00`
+        );
+
+      fin.setDate(fin.getDate() + 1);
+
+      pagosWhere.createdAt[Op.lt] =
+        fin;
     }
   }
 
-  // filtros de User
-  const userWhere = busqueda
+  /*
+   * =====================================================
+   * CERTIFICADOS
+   * =====================================================
+   */
+
+  const certificadoBoolean =
+    normalizarBooleano(certificado);
+
+  if (certificadoBoolean !== undefined) {
+    const certificados =
+      await Certificado.findAll({
+        attributes: [
+          "inscripcionId",
+        ],
+        where: {
+          inscripcionId: {
+            [Op.ne]: null,
+          },
+        },
+        group: [
+          "inscripcionId",
+        ],
+        raw: true,
+      });
+
+    const ids =
+      certificados.map(
+        (c) => c.inscripcionId
+      );
+
+    if (certificadoBoolean) {
+      pagosWhere.inscripcionId =
+        ids.length
+          ? {
+            [Op.in]: ids,
+          }
+          : {
+            [Op.eq]: null,
+          };
+    } else if (ids.length) {
+      pagosWhere.inscripcionId = {
+        [Op.notIn]: ids,
+      };
+    }
+  }
+
+  /*
+   * =====================================================
+   * FILTRO USUARIO
+   * =====================================================
+   */
+
+  const texto =
+    busqueda?.trim();
+
+  const userWhere = texto
     ? {
       [Op.or]: [
-        { grado: { [Op.iLike]: `%${busqueda}%` } },
-        { firstName: { [Op.iLike]: `%${busqueda}%` } },
-        { lastName: { [Op.iLike]: `%${busqueda}%` } },
-        { cI: { [Op.iLike]: `%${busqueda}%` } },
+        {
+          grado: {
+            [Op.iLike]:
+              `%${texto}%`,
+          },
+        },
+        {
+          firstName: {
+            [Op.iLike]:
+              `%${texto}%`,
+          },
+        },
+        {
+          lastName: {
+            [Op.iLike]:
+              `%${texto}%`,
+          },
+        },
+        {
+          cI: {
+            [Op.iLike]:
+              `%${texto}%`,
+          },
+        },
+        {
+          email: {
+            [Op.iLike]:
+              `%${texto}%`,
+          },
+        },
       ],
     }
     : undefined;
 
-  // traer pagos con inscripción y usuario
-  let results = await Pagos.findAll({
+  /*
+   * =====================================================
+   * CONSULTA
+   * =====================================================
+   */
+
+  const direccionOrden =
+    String(order).toUpperCase() ===
+      "ASC"
+      ? "ASC"
+      : "DESC";
+
+  const {
+    count,
+    rows,
+  } = await Pagos.findAndCountAll({
     where: pagosWhere,
+
+    distinct: true,
+
+    limit,
+
+    offset,
+
+    order: [
+      [
+        "createdAt",
+        direccionOrden,
+      ],
+      [
+        "id",
+        direccionOrden,
+      ],
+    ],
+
     attributes: [
       "id",
       "curso",
@@ -98,8 +368,10 @@ const getAll = catchError(async (req, res) => {
       "entregado",
       "observacion",
       "createdAt",
+      "updatedAt",
       "inscripcionId",
       "usuarioEdicion",
+
       "contificoDocumentoId",
       "contificoDocumentoNumero",
       "contificoEstado",
@@ -107,55 +379,201 @@ const getAll = catchError(async (req, res) => {
       "contificoUrlRide",
       "contificoUrlXml",
       "contificoAutorizacion",
-
     ],
+
     include: [
       {
         model: Inscripcion,
+
         required: true,
-        attributes: ["id", "curso", "userId"],
+
+        attributes: [
+          "id",
+          "curso",
+          "userId",
+          "courseId",
+        ],
+
         include: [
           {
             model: User,
-            required: true,
-            attributes: ["grado", "firstName", "lastName", "cI", "cellular", "email"],
-            where: userWhere || undefined,
+
+            required:
+              Boolean(userWhere),
+
+            where: userWhere,
+
+            attributes: [
+              "id",
+              "grado",
+              "firstName",
+              "lastName",
+              "cI",
+              "cellular",
+              "email",
+            ],
           },
         ],
       },
     ],
-    order: [["createdAt", "DESC"]],
   });
 
-  // 🔁 AHORA certificados se relacionan por inscripcionId
-  const certificados = await Certificado.findAll({
-    attributes: ["id", "inscripcionId", "url"], // ya no usamos cedula/curso
-    raw: true,
+
+  /*
+   * =====================================================
+   * CERTIFICADOS DE LA PÁGINA ACTUAL
+   * =====================================================
+   */
+
+  const inscripcionIds = [
+    ...new Set(
+      rows
+        .map(
+          (pagoItem) =>
+            pagoItem.inscripcionId,
+        )
+        .filter(Boolean),
+    ),
+  ];
+
+  let certificadosPagina = [];
+
+  if (inscripcionIds.length > 0) {
+    certificadosPagina =
+      await Certificado.findAll({
+        attributes: [
+          "id",
+          "inscripcionId",
+          "url",
+        ],
+
+        where: {
+          inscripcionId: {
+            [Op.in]:
+              inscripcionIds,
+          },
+        },
+
+        raw: true,
+      });
+  }
+
+  /*
+   * Creamos un Map para buscar certificados
+   * sin recorrer todo el arreglo por cada pago.
+   */
+
+  const certificadosPorInscripcion =
+    new Map();
+
+  certificadosPagina.forEach(
+    (certificadoItem) => {
+      if (
+        !certificadosPorInscripcion.has(
+          certificadoItem.inscripcionId,
+        )
+      ) {
+        certificadosPorInscripcion.set(
+          certificadoItem.inscripcionId,
+          certificadoItem,
+        );
+      }
+    },
+  );
+
+  /*
+   * =====================================================
+   * RESPUESTA DE LA PÁGINA
+   * =====================================================
+   */
+
+  const data = rows.map(
+    (pagoItem) => {
+      const pagoJson =
+        pagoItem.toJSON();
+
+      const certificadoEncontrado =
+        certificadosPorInscripcion.get(
+          pagoItem.inscripcionId,
+        );
+
+      return {
+        ...pagoJson,
+
+        certificado:
+          Boolean(
+            certificadoEncontrado,
+          ),
+
+        urlCertificado:
+          certificadoEncontrado?.url ||
+          null,
+      };
+    },
+  );
+
+  /*
+   * findAndCountAll devuelve un número cuando
+   * usamos distinct sin group.
+   */
+
+  const total =
+    typeof count === "number"
+      ? count
+      : count.length;
+
+  const totalPages =
+    Math.max(
+      Math.ceil(
+        total / limit,
+      ),
+      1,
+    );
+
+  /*
+   * Si se solicita una página mayor a la última,
+   * no lanzamos error, pero devolvemos la información
+   * correcta para que el frontend vuelva a una página válida.
+   */
+
+  const from =
+    total === 0
+      ? 0
+      : offset + 1;
+
+  const to =
+    total === 0
+      ? 0
+      : Math.min(
+        offset + rows.length,
+        total,
+      );
+
+  return res.json({
+    total,
+    page,
+    limit,
+    totalPages,
+
+    from,
+    to,
+
+    hasNextPage:
+      page < totalPages,
+
+    hasPreviousPage:
+      page > 1,
+
+    data,
   });
-
-  // mapear resultados y hacer match por inscripcionId
-  results = results.map((pago) => {
-    const inscripcion = pago.inscripcion;
-    const user = inscripcion.user;
-
-    const cert =
-      certificados.find(
-        (c) => c.inscripcionId === inscripcion.id // clave: relacionar por inscripcion.id
-      ) || null;
-
-    return {
-      ...pago.toJSON(),
-      certificado: !!cert,
-      urlCertificado: cert ? cert.url : null,
-    };
-  });
-
-  // filtrar por certificado si se pasó query
-  if (certificado === "true") results = results.filter((p) => p.certificado);
-  if (certificado === "false") results = results.filter((p) => !p.certificado);
-
-  return res.json(results);
 });
+
+
+
+
+
+
+
 
 
 
@@ -211,7 +629,7 @@ const getDashboardPagos = catchError(async (req, res) => {
   const totalConceptos = totalMonedas + totalDistintivos;
 
   const totalPagos = pagos.reduce(
-    (acc, p) => acc + (p.valorDepositado || 0),
+    (acc, p) => acc + (Number(p.valorDepositado) || 0),
     0
   );
   const totalPagosNum = pagos.length;
@@ -287,8 +705,7 @@ const getDashboardPagos = catchError(async (req, res) => {
 });
 
 const validatePago = catchError(async (req, res) => {
-  const { cedula, code } = req.body;
-
+  const { cedula, code } = req.body || {};
   if (!cedula || !code) {
     return res.status(400).json({ error: "Faltan parámetros (cedula y code)" });
   }
