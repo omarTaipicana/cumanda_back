@@ -1,6 +1,7 @@
 const catchError = require("../utils/catchError");
 const User = require("../models/User");
 const sequelizeM = require("../utils/connectionM");
+const { Op } = require("sequelize");
 
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -378,6 +379,124 @@ const getAll = catchError(async (req, res) => {
     console.error("Error en getAll optimizado:", error);
     res.status(500).json({ error: "Error al obtener los datos." });
   }
+});
+
+
+
+// ========================== SEARCH USERS ==========================
+
+const searchUsers = catchError(async (req, res) => {
+  const {
+    q = "",
+    limit = 10,
+  } = req.query;
+
+  const search = String(q).trim();
+
+  if (search.length < 2) {
+    return res.json({
+      data: [],
+    });
+  }
+
+  const limitInt = Math.min(
+    Math.max(
+      Number.parseInt(limit, 10) || 10,
+      1,
+    ),
+    20,
+  );
+
+  const searchLower =
+    search.toLowerCase();
+
+  const terms = search
+    .split(/\s+/)
+    .filter(Boolean);
+
+  const conditions = [
+    {
+      cI: {
+        [Op.iLike]: `%${search}%`,
+      },
+    },
+    {
+      email: {
+        [Op.iLike]:
+          `%${searchLower}%`,
+      },
+    },
+    {
+      firstName: {
+        [Op.iLike]: `%${search}%`,
+      },
+    },
+    {
+      lastName: {
+        [Op.iLike]: `%${search}%`,
+      },
+    },
+  ];
+
+  /*
+   * Permite buscar:
+   * "Juan Pérez"
+   * "Juan Carlos Pérez"
+   */
+  if (terms.length >= 2) {
+    const firstTerm =
+      terms[0];
+
+    const lastTerm =
+      terms
+        .slice(1)
+        .join(" ");
+
+    conditions.push({
+      [Op.and]: [
+        {
+          firstName: {
+            [Op.iLike]:
+              `%${firstTerm}%`,
+          },
+        },
+        {
+          lastName: {
+            [Op.iLike]:
+              `%${lastTerm}%`,
+          },
+        },
+      ],
+    });
+  }
+
+  const users =
+    await User.findAll({
+      attributes: [
+        "id",
+        "cI",
+        "firstName",
+        "lastName",
+        "email",
+      ],
+
+      where: {
+        [Op.or]: conditions,
+      },
+
+      order: [
+        ["firstName", "ASC"],
+        ["lastName", "ASC"],
+      ],
+
+      limit: limitInt,
+
+      raw: true,
+    });
+
+  return res.json({
+    data: users,
+  });
 });
 
 
@@ -1250,6 +1369,7 @@ const resetPassword = catchError(async (req, res) => {
 
 module.exports = {
   getAll,
+  searchUsers,
   create,
   getOne,
   remove,
