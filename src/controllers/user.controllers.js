@@ -1367,6 +1367,8 @@ const resetPassword = catchError(async (req, res) => {
   return res.json(result[1][0]);
 });
 
+
+
 module.exports = {
   getAll,
   searchUsers,
